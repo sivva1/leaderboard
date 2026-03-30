@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobalBoard — Create Your Leaderboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bricolage+Grotesque:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #08090c;
+  --surf:     #111318;
+  --surf2:    #181b22;
+  --border:   #232733;
+  --border2:  #2d3241;
+  --accent:   #7c6ef5;
+  --accent2:  #4fd1c5;
+  --accent3:  #f6ad55;
+  --danger:   #fc5c7d;
+  --success:  #68d391;
+  --text:     #e8eaf2;
+  --muted:    #6b7390;
+  --muted2:   #9197b3;
+  --mono:     'DM Mono', monospace;
+  --sans:     'Bricolage Grotesque', sans-serif;
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* noise texture */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── LAYOUT ── */
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ── NAV ── */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; height: 60px;
+  background: rgba(8,9,12,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo {
+  font-size: 20px; font-weight: 800; letter-spacing: -0.5px;
+  display: flex; align-items: center; gap: 8px;
+}
+.logo-icon {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.nav-actions { display: flex; gap: 8px; }
+.btn-nav {
+  font-family: var(--sans); font-size: 13px; font-weight: 600;
+  padding: 7px 16px; border-radius: 8px; border: none;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-nav.ghost {
+  background: transparent; color: var(--muted2);
+  border: 1px solid var(--border);
+}
+.btn-nav.ghost:hover { color: var(--text); border-color: var(--border2); }
+.btn-nav.solid {
+  background: var(--accent); color: #fff;
+}
+.btn-nav.solid:hover { background: #6a5ee0; transform: translateY(-1px); }
+
+/* ── HERO ── */
+.hero {
+  text-align: center; padding: 80px 24px 64px;
+  position: relative;
+}
+.hero-glow {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 600px; height: 300px;
+  background: radial-gradient(ellipse at center top, rgba(124,110,245,0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 12px; color: var(--accent);
+  background: rgba(124,110,245,0.1); border: 1px solid rgba(124,110,245,0.25);
+  padding: 4px 12px; border-radius: 20px; margin-bottom: 24px;
+}
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--success);
+  animation: blink 1.4s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.hero h1 {
+  font-size: clamp(36px, 6vw, 68px);
+  font-weight: 800; letter-spacing: -2px; line-height: 1.05;
+  margin-bottom: 20px;
+}
+.hero h1 em {
+  font-style: normal;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero p {
+  font-size: 18px; color: var(--muted2); max-width: 520px;
+  margin: 0 auto 40px; line-height: 1.65; font-weight: 400;
+}
+.hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+.btn-lg {
+  font-family: var(--sans); font-size: 15px; font-weight: 700;
+  padding: 14px 28px; border-radius: 12px; border: none; cursor: pointer;
+  transition: all 0.2s; text-decoration: none; display: inline-flex;
+  align-items: center; gap: 8px;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #6a5ee0; transform: translateY(-2px); box-shadow: 0 8px 30px rgba(124,110,245,0.35); }
+.btn-secondary { background: var(--surf2); color: var(--text); border: 1px solid var(--border2); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── CARDS GRID ── */
+.features {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 16px; padding: 0 24px; max-width: 900px; margin: 0 auto 80px;
+}
+.feat-card {
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 16px; padding: 24px; transition: border-color 0.2s;
+}
+.feat-card:hover { border-color: var(--border2); }
+.feat-icon { font-size: 28px; margin-bottom: 12px; }
+.feat-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.feat-card p  { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+  display: none; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surf); border: 1px solid var(--border2);
+  border-radius: 20px; padding: 32px;
+  width: 100%; max-width: 480px;
+  animation: slideUp 0.25s ease;
+}
+@keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+.modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 24px;
+}
+.modal-title { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+.modal-close {
+  width: 32px; height: 32px; border-radius: 8px; background: var(--surf2);
+  border: none; color: var(--muted); cursor: pointer; font-size: 18px;
+  display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+}
+.modal-close:hover { color: var(--text); background: var(--border); }
+
+/* ── FORMS ── */
+.form-group { margin-bottom: 16px; }
+.form-group label {
+  display: block; font-size: 12px; font-weight: 600;
+  color: var(--muted2); text-transform: uppercase; letter-spacing: 0.8px;
+  margin-bottom: 6px; font-family: var(--mono);
+}
+.form-group input, .form-group textarea {
+  width: 100%; padding: 11px 14px;
+  background: var(--bg); border: 1px solid var(--border2);
+  border-radius: 10px; color: var(--text);
+  font-family: var(--sans); font-size: 14px;
+  outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+  resize: none;
+}
+.form-group input:focus, .form-group textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(124,110,245,0.15);
+}
+.form-group input::placeholder { color: var(--muted); }
+.form-hint { font-size: 12px; color: var(--muted); margin-top: 5px; }
+
+.btn-full {
+  width: 100%; font-family: var(--sans); font-size: 15px; font-weight: 700;
+  padding: 13px; border-radius: 10px; border: none; cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-accent { background: var(--accent); color: #fff; }
+.btn-accent:hover { background: #6a5ee0; }
+.btn-accent:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.modal-msg {
+  font-size: 13px; font-family: var(--mono);
+  padding: 10px 14px; border-radius: 8px; margin-top: 12px;
+  display: none;
+}
+.modal-msg.success { background: rgba(104,211,145,0.1); border: 1px solid rgba(104,211,145,0.3); color: var(--success); display: block; }
+.modal-msg.error   { background: rgba(252,92,125,0.1);  border: 1px solid rgba(252,92,125,0.3);  color: var(--danger);  display: block; }
+
+/* ── DASHBOARD ── */
+#dashboard { display: none; }
+.dash-header {
+  padding: 32px 24px 0;
+  max-width: 1100px; margin: 0 auto;
+}
+.dash-top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap; margin-bottom: 32px;
+}
+.dash-title-block {}
+.board-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 12px; color: var(--accent2);
+  background: rgba(79,209,197,0.1); border: 1px solid rgba(79,209,197,0.25);
+  padding: 3px 10px; border-radius: 20px; margin-bottom: 8px;
+}
+.dash-title { font-size: 32px; font-weight: 800; letter-spacing: -1px; }
+.dash-desc  { font-size: 14px; color: var(--muted2); margin-top: 4px; }
+.dash-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.btn-sm {
+  font-family: var(--sans); font-size: 13px; font-weight: 600;
+  padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
+  transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+}
+.btn-sm.ghost { background: var(--surf2); color: var(--muted2); border: 1px solid var(--border); }
+.btn-sm.ghost:hover { border-color: var(--accent); color: var(--accent); }
+.btn-sm.danger { background: rgba(252,92,125,0.1); color: var(--danger); border: 1px solid rgba(252,92,125,0.25); }
+.btn-sm.danger:hover { background: rgba(252,92,125,0.2); }
+.btn-sm.success-btn { background: rgba(104,211,145,0.1); color: var(--success); border: 1px solid rgba(104,211,145,0.25); }
+
+/* ── TABS ── */
+.tabs {
+  display: flex; gap: 4px; padding: 0 24px;
+  max-width: 1100px; margin: 0 auto 24px;
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  font-family: var(--sans); font-size: 14px; font-weight: 600;
+  padding: 10px 18px; border: none; background: none; cursor: pointer;
+  color: var(--muted); border-bottom: 2px solid transparent;
+  margin-bottom: -1px; transition: all 0.2s;
+}
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab:hover:not(.active) { color: var(--text); }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── LEADERBOARD TABLE ── */
+.lb-wrap {
+  padding: 0 24px 48px;
+  max-width: 1100px; margin: 0 auto;
+}
+.lb-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.lb-meta { font-size: 14px; color: var(--muted); font-family: var(--mono); }
+.lb-search {
+  flex: 1; max-width: 260px;
+  padding: 8px 14px; background: var(--surf2);
+  border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); font-family: var(--sans); font-size: 13px;
+  outline: none; transition: border-color 0.2s;
+}
+.lb-search:focus { border-color: var(--accent); }
+.lb-refresh {
+  font-family: var(--mono); font-size: 12px; color: var(--muted);
+  background: var(--surf2); border: 1px solid var(--border);
+  padding: 7px 14px; border-radius: 8px; cursor: pointer; transition: all 0.2s;
+}
+.lb-refresh:hover { color: var(--accent2); border-color: var(--accent2); }
+
+.lb-table-wrap {
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden;
+}
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1px;
+  padding: 14px 20px; border-bottom: 1px solid var(--border);
+  text-align: left; background: var(--surf2);
+}
+.lb-row { transition: background 0.15s; }
+.lb-row:hover { background: rgba(124,110,245,0.04); }
+.lb-row td { padding: 14px 20px; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: middle; }
+.lb-row:last-child td { border-bottom: none; }
+
+.rank-cell { text-align: center; width: 56px; }
+.rank-num { font-family: var(--mono); font-weight: 500; }
+.r1 { color: #ffd700; font-size: 20px; }
+.r2 { color: #c0c0c0; font-size: 18px; }
+.r3 { color: #cd7f32; font-size: 16px; }
+.r-other { color: var(--muted); font-size: 13px; }
+
+.player-cell { display: flex; align-items: center; gap: 10px; }
+.player-flag { font-size: 22px; }
+.player-name { font-weight: 700; font-size: 15px; }
+.player-country { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+.score-cell { }
+.score-val { font-family: var(--mono); font-size: 16px; font-weight: 500; color: var(--accent2); }
+.score-bar-wrap { margin-top: 4px; height: 3px; background: var(--border); border-radius: 2px; width: 120px; }
+.score-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 0.6s ease; }
+
+.time-cell { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+.del-cell { }
+.del-btn {
+  background: none; border: 1px solid transparent; color: var(--muted);
+  padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 14px;
+  transition: all 0.2s;
+}
+.del-btn:hover { color: var(--danger); border-color: rgba(252,92,125,0.3); background: rgba(252,92,125,0.05); }
+
+.lb-empty {
+  text-align: center; padding: 60px 24px;
+  color: var(--muted); font-family: var(--mono);
+}
+.lb-empty .empty-icon { font-size: 48px; margin-bottom: 12px; display: block; }
+
+/* ── EMBED TAB ── */
+.embed-wrap { padding: 0 24px 48px; max-width: 1100px; margin: 0 auto; }
+.embed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.embed-card {
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 16px; padding: 24px;
+}
+.embed-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+.embed-card p  { font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.6; }
+.code-box {
+  background: var(--bg); border: 1px solid var(--border2);
+  border-radius: 10px; overflow: hidden;
+}
+.code-box-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 14px; border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+}
+.code-box-lang { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; }
+.copy-btn {
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+  background: none; border: 1px solid var(--border); padding: 3px 10px;
+  border-radius: 5px; cursor: pointer; transition: all 0.2s;
+}
+.copy-btn:hover { color: var(--accent2); border-color: var(--accent2); }
+.code-box pre {
+  padding: 16px; font-family: var(--mono); font-size: 12px;
+  line-height: 1.8; color: #9fb3d0; overflow-x: auto;
+  white-space: pre-wrap; word-break: break-all;
+}
+.embed-preview {
+  grid-column: 1 / -1;
+  background: var(--surf); border: 1px solid var(--border); border-radius: 16px;
+  overflow: hidden;
+}
+.preview-bar {
+  display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+  border-bottom: 1px solid var(--border); background: var(--surf2);
+}
+.preview-dots span { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
+.preview-dots span:nth-child(1){background:#ff5f57}
+.preview-dots span:nth-child(2){background:#febc2e}
+.preview-dots span:nth-child(3){background:#28c840}
+.preview-url { font-family: var(--mono); font-size: 12px; color: var(--muted); flex:1; text-align:center; }
+
+/* ── SETTINGS TAB ── */
+.settings-wrap { padding: 0 24px 48px; max-width: 700px; margin: 0 auto; }
+.settings-section {
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 16px; padding: 24px; margin-bottom: 20px;
+}
+.settings-section h3 { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+.settings-section p  { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+.danger-zone { border-color: rgba(252,92,125,0.25); }
+.danger-zone h3 { color: var(--danger); }
+
+/* ── STATS ── */
+.stats-row {
+  display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px;
+  padding: 0 24px; max-width: 1100px; margin: 0 auto 24px;
+}
+.stat-card {
+  flex: 1; min-width: 140px;
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px 20px;
+}
+.stat-label { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.stat-value { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+.stat-value.accent { color: var(--accent); }
+.stat-value.teal   { color: var(--accent2); }
+.stat-value.gold   { color: var(--accent3); }
+
+/* ── TOAST ── */
+#toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 999;
+  font-family: var(--mono); font-size: 13px;
+  padding: 12px 20px; border-radius: 10px;
+  transform: translateY(80px); opacity: 0;
+  transition: all 0.3s; pointer-events: none;
+}
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.success { background: rgba(104,211,145,0.15); border: 1px solid rgba(104,211,145,0.4); color: var(--success); }
+#toast.error   { background: rgba(252,92,125,0.15);  border: 1px solid rgba(252,92,125,0.4);  color: var(--danger); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .features { grid-template-columns: 1fr; }
+  .embed-grid { grid-template-columns: 1fr; }
+  .dash-top { flex-direction: column; }
+  .stats-row { flex-direction: column; }
+  .hero h1 { font-size: 36px; }
+  thead th:nth-child(4), td:nth-child(4) { display: none; }
+  .score-bar-wrap { display: none; }
+}
+@media (max-width: 480px) {
+  .modal { padding: 24px; }
+  thead th:nth-child(5), td:nth-child(5) { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="logo-icon">🏆</div>
+    GlobalBoard
+  </div>
+  <div class="nav-actions">
+    <button class="btn-nav ghost" onclick="openModal('login-modal')">Login to Board</button>
+    <button class="btn-nav solid" onclick="openModal('create-modal')">Create Board</button>
+  </div>
+</nav>
+
+<!-- LANDING -->
+<div id="landing">
+  <div class="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-tag">
+      <span class="live-dot"></span>
+      Free · No backend needed · Embeddable everywhere
+    </div>
+    <h1>Global Leaderboards<br>for <em>Any Website</em></h1>
+    <p>Create a password-protected leaderboard in seconds. Embed it on your site with one line of code. No backend, no Firebase, no setup.</p>
+    <div class="hero-cta">
+      <button class="btn-lg btn-primary" onclick="openModal('create-modal')">🚀 Create Your Leaderboard</button>
+      <button class="btn-lg btn-secondary" onclick="openModal('login-modal')">🔐 Manage Existing</button>
+    </div>
+  </div>
+
+  <div class="features">
+    <div class="feat-card">
+      <div class="feat-icon">🔐</div>
+      <h3>Password Protected</h3>
+      <p>Only you can manage your leaderboard. Public can view and submit scores — you control deletions and settings.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🌍</div>
+      <h3>Global & Real-Time</h3>
+      <p>Scores from users worldwide update instantly. Country flags, rankings, and scores are always live.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📋</div>
+      <h3>One-Line Embed</h3>
+      <p>Drop an &lt;iframe&gt; or &lt;script&gt; tag anywhere on your website. Your leaderboard appears instantly.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🚫</div>
+      <h3>No Duplicates</h3>
+      <p>Same player name? Only the highest score is kept. No duplicate entries, ever.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🎮</div>
+      <h3>For Any Game or App</h3>
+      <p>Use our JavaScript API to submit scores programmatically from your game or web app.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">⚡</div>
+      <h3>Zero Infrastructure</h3>
+      <p>Runs on Vercel serverless. No servers to maintain, no databases to configure. Just works.</p>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="dash-header">
+    <div class="dash-top">
+      <div class="dash-title-block">
+        <div class="board-badge">🏷 <span id="dash-id"></span></div>
+        <div class="dash-title" id="dash-title">—</div>
+        <div class="dash-desc" id="dash-desc"></div>
+      </div>
+      <div class="dash-actions">
+        <button class="btn-sm ghost" onclick="copyEmbedQuick()">📋 Copy Embed</button>
+        <button class="btn-sm ghost" onclick="logout()">← Exit</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-row" id="stats-row">
+    <div class="stat-card"><div class="stat-label">Total Players</div><div class="stat-value accent" id="st-total">0</div></div>
+    <div class="stat-card"><div class="stat-label">Top Score</div><div class="stat-value teal" id="st-top">—</div></div>
+    <div class="stat-card"><div class="stat-label">Top Player</div><div class="stat-value gold" id="st-name" style="font-size:20px">—</div></div>
+    <div class="stat-card"><div class="stat-label">Board ID</div><div class="stat-value" id="st-id" style="font-size:16px;color:var(--muted2)">—</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('scores')">🏆 Scores</button>
+    <button class="tab" onclick="switchTab('embed')">📋 Embed & API</button>
+    <button class="tab" onclick="switchTab('settings')">⚙️ Settings</button>
+  </div>
+
+  <!-- SCORES TAB -->
+  <div class="tab-panel active" id="tab-scores">
+    <div class="lb-wrap">
+      <div class="lb-toolbar">
+        <div class="lb-meta" id="lb-meta">Loading...</div>
+        <input class="lb-search" id="lb-search" placeholder="🔍 Search player..." oninput="searchPlayers()">
+        <button class="lb-refresh" onclick="loadBoard()">↻ Refresh</button>
+        <button class="btn-sm danger" onclick="confirmClear()">🗑 Clear All</button>
+      </div>
+      <div class="lb-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align:center">Rank</th>
+              <th>Player</th>
+              <th>Score</th>
+              <th>Date</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="lb-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMBED TAB -->
+  <div class="tab-panel" id="tab-embed">
+    <div class="embed-wrap">
+      <div class="embed-grid">
+
+        <div class="embed-card">
+          <h3>🖼 iFrame Embed</h3>
+          <p>Paste this anywhere in your HTML to show a live, styled leaderboard widget.</p>
+          <div class="code-box">
+            <div class="code-box-head">
+              <span class="code-box-lang">HTML</span>
+              <button class="copy-btn" onclick="copyCode('iframe-code')">Copy</button>
+            </div>
+            <pre id="iframe-code"></pre>
+          </div>
+        </div>
+
+        <div class="embed-card">
+          <h3>⚡ JavaScript API</h3>
+          <p>Submit scores programmatically from your game or app. No password needed for submissions.</p>
+          <div class="code-box">
+            <div class="code-box-head">
+              <span class="code-box-lang">JavaScript</span>
+              <button class="copy-btn" onclick="copyCode('js-code')">Copy</button>
+            </div>
+            <pre id="js-code"></pre>
+          </div>
+        </div>
+
+        <div class="embed-card">
+          <h3>🐍 Python / Backend</h3>
+          <p>Submit scores from your Python game or backend server using the requests library.</p>
+          <div class="code-box">
+            <div class="code-box-head">
+              <span class="code-box-lang">Python</span>
+              <button class="copy-btn" onclick="copyCode('py-code')">Copy</button>
+            </div>
+            <pre id="py-code"></pre>
+          </div>
+        </div>
+
+        <div class="embed-card">
+          <h3>📡 REST API Reference</h3>
+          <p>Direct HTTP calls — works with any language or platform.</p>
+          <div class="code-box">
+            <div class="code-box-head">
+              <span class="code-box-lang">REST</span>
+              <button class="copy-btn" onclick="copyCode('rest-code')">Copy</button>
+            </div>
+            <pre id="rest-code"></pre>
+          </div>
+        </div>
+
+        <div class="embed-preview">
+          <div class="preview-bar">
+            <div class="preview-dots"><span></span><span></span><span></span></div>
+            <div class="preview-url" id="preview-url">Widget Preview</div>
+          </div>
+          <iframe id="preview-iframe" style="width:100%;height:420px;border:none;" src="about:blank"></iframe>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS TAB -->
+  <div class="tab-panel" id="tab-settings">
+    <div class="settings-wrap">
+
+      <div class="settings-section">
+        <h3>Board Settings</h3>
+        <p>Update your leaderboard's title, description, or password.</p>
+        <div class="form-group">
+          <label>Title</label>
+          <input type="text" id="s-title" placeholder="My Awesome Leaderboard">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="s-desc" rows="2" placeholder="Optional description..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>New Password (leave blank to keep current)</label>
+          <input type="password" id="s-newpw" placeholder="New password...">
+        </div>
+        <div class="form-group">
+          <label>Current Password (required)</label>
+          <input type="password" id="s-curpw" placeholder="Your current password">
+        </div>
+        <button class="btn-full btn-accent" onclick="saveSettings()">Save Changes</button>
+        <div class="modal-msg" id="settings-msg"></div>
+      </div>
+
+      <div class="settings-section danger-zone">
+        <h3>⚠️ Danger Zone</h3>
+        <p>Permanently delete this leaderboard and all its data. This cannot be undone.</p>
+        <button class="btn-full" onclick="confirmDelete()"
+          style="background:rgba(252,92,125,0.1);color:var(--danger);border:1px solid rgba(252,92,125,0.3);border-radius:10px;padding:12px;font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;">
+          🗑 Delete This Leaderboard
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── MODALS ── -->
+
+<!-- Create Modal -->
+<div class="modal-overlay" id="create-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Create Leaderboard</div>
+      <button class="modal-close" onclick="closeModal('create-modal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Board ID</label>
+      <input type="text" id="c-id" placeholder="my-game-board" oninput="sanitizeBoardId(this)">
+      <div class="form-hint">3-40 chars, letters/numbers/dash/underscore. This is your unique URL.</div>
+    </div>
+    <div class="form-group">
+      <label>Title</label>
+      <input type="text" id="c-title" placeholder="My Game Leaderboard">
+    </div>
+    <div class="form-group">
+      <label>Description (optional)</label>
+      <input type="text" id="c-desc" placeholder="Top players of my awesome game">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="c-pw" placeholder="Min. 4 characters">
+      <div class="form-hint">Only you will use this — keep it safe. Needed to manage/delete the board.</div>
+    </div>
+    <button class="btn-full btn-accent" onclick="createBoard()">Create Leaderboard →</button>
+    <div class="modal-msg" id="create-msg"></div>
+  </div>
+</div>
+
+<!-- Login Modal -->
+<div class="modal-overlay" id="login-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Access Your Board</div>
+      <button class="modal-close" onclick="closeModal('login-modal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Board ID</label>
+      <input type="text" id="l-id" placeholder="your-board-id">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="l-pw" placeholder="Your board password"
+        onkeydown="if(event.key==='Enter') loginBoard()">
+    </div>
+    <button class="btn-full btn-accent" onclick="loginBoard()">Access Dashboard →</button>
+    <div class="modal-msg" id="login-msg"></div>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div class="modal-title" id="confirm-title">Are you sure?</div>
+      <button class="modal-close" onclick="closeModal('confirm-modal')">✕</button>
+    </div>
+    <p style="color:var(--muted2);font-size:14px;margin-bottom:24px;line-height:1.6" id="confirm-body"></p>
+    <div style="display:flex;gap:10px">
+      <button class="btn-full" onclick="closeModal('confirm-modal')"
+        style="background:var(--surf2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;">
+        Cancel
+      </button>
+      <button class="btn-full" id="confirm-ok"
+        style="background:var(--danger);color:#fff;border:none;border-radius:10px;padding:12px;font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;">
+        Confirm
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+// Change this to your Vercel deployment URL
+const API = window.location.origin + "/api/leaderboard";
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let session = { board_id: null, password: null, title: "", desc: "" };
+let allPlayers = [];
+
+// ─── API HELPERS ──────────────────────────────────────────────────────────────
+async function api(action, body = null, method = "POST") {
+  try {
+    const opts = { method, headers: { "Content-Type": "application/json" } };
+    if (body) opts.body = JSON.stringify(body);
+    const url = method === "GET" ? buildGetUrl(action, body) : `${API}?action=${action}`;
+    const res = await fetch(method === "GET" ? url : `${API}?action=${action}`, opts);
+    return await res.json();
+  } catch(e) {
+    return { success: false, error: "Network error. Is the server running?" };
+  }
+}
+
+function buildGetUrl(action, params = {}) {
+  const q = new URLSearchParams({ action, ...params });
+  return `${API}?${q}`;
+}
+
+async function apiGet(params) {
+  try {
+    const q = new URLSearchParams({ action: "get", ...params });
+    const res = await fetch(`${API}?${q}`);
+    return await res.json();
+  } catch(e) {
+    return { success: false, error: "Network error." };
+  }
+}
+
+// ─── MODAL HELPERS ────────────────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add("open"); }
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+
+function setMsg(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = `modal-msg ${type}`;
+}
+
+function toast(msg, type = "success") {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = `show ${type}`;
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.className = "", 3000);
+}
+
+// ─── CREATE BOARD ─────────────────────────────────────────────────────────────
+function sanitizeBoardId(el) {
+  el.value = el.value.replace(/[^a-zA-Z0-9_-]/g, "");
+}
+
+async function createBoard() {
+  const bid   = document.getElementById("c-id").value.trim();
+  const title = document.getElementById("c-title").value.trim();
+  const desc  = document.getElementById("c-desc").value.trim();
+  const pw    = document.getElementById("c-pw").value.trim();
+  const btn   = document.querySelector("#create-modal .btn-full");
+
+  if (!bid || !title || !pw) {
+    setMsg("create-msg", "Board ID, Title and Password are required.", "error");
+    return;
+  }
+  btn.disabled = true; btn.textContent = "Creating...";
+  const res = await api("create", { board_id: bid, password: pw, title, description: desc });
+  btn.disabled = false; btn.textContent = "Create Leaderboard →";
+
+  if (!res.success) { setMsg("create-msg", res.error, "error"); return; }
+  closeModal("create-modal");
+  toast("🎉 Leaderboard created!");
+  session = { board_id: bid, password: pw, title, desc };
+  openDashboard(res);
+}
+
+// ─── LOGIN ────────────────────────────────────────────────────────────────────
+async function loginBoard() {
+  const bid = document.getElementById("l-id").value.trim();
+  const pw  = document.getElementById("l-pw").value.trim();
+  if (!bid || !pw) { setMsg("login-msg", "Both fields required.", "error"); return; }
+
+  const btn = document.querySelector("#login-modal .btn-full");
+  btn.disabled = true; btn.textContent = "Verifying...";
+  const res = await api("verify", { board_id: bid, password: pw });
+  btn.disabled = false; btn.textContent = "Access Dashboard →";
+
+  if (!res.success) { setMsg("login-msg", res.error, "error"); return; }
+  closeModal("login-modal");
+  session = { board_id: bid, password: pw, title: res.title, desc: res.description };
+  openDashboard(res);
+}
+
+// ─── DASHBOARD ───────────────────────────────────────────────────────────────
+function openDashboard(info) {
+  document.getElementById("landing").style.display = "none";
+  document.getElementById("dashboard").style.display = "block";
+  document.getElementById("dash-id").textContent    = session.board_id;
+  document.getElementById("dash-title").textContent = session.title;
+  document.getElementById("dash-desc").textContent  = session.desc || "";
+  document.getElementById("st-id").textContent      = session.board_id;
+  document.getElementById("s-title").value = session.title;
+  document.getElementById("s-desc").value  = session.desc || "";
+  buildEmbedCodes();
+  loadBoard();
+}
+
+function logout() {
+  session = { board_id: null, password: null, title: "", desc: "" };
+  allPlayers = [];
+  document.getElementById("landing").style.display   = "block";
+  document.getElementById("dashboard").style.display = "none";
+}
+
+// ─── LOAD BOARD ───────────────────────────────────────────────────────────────
+async function loadBoard() {
+  const res = await apiGet({ board_id: session.board_id, limit: 500 });
+  if (!res.success) { toast(res.error, "error"); return; }
+  allPlayers = res.players;
+  renderTable(allPlayers);
+  updateStats(allPlayers);
+}
+
+function updateStats(players) {
+  document.getElementById("st-total").textContent = players.length;
+  const top = players[0];
+  document.getElementById("st-top").textContent  = top ? top.score.toLocaleString() : "—";
+  document.getElementById("st-name").textContent = top ? top.name : "—";
+  document.getElementById("lb-meta").textContent = `${players.length} player${players.length !== 1 ? "s" : ""}`;
+}
+
+function renderTable(players) {
+  const tbody = document.getElementById("lb-body");
+  if (!players.length) {
+    tbody.innerHTML = `<tr><td colspan="5">
+      <div class="lb-empty">
+        <span class="empty-icon">🏆</span>
+        No scores yet. Share your embed code to get started!
+      </div>
+    </td></tr>`;
+    return;
+  }
+  const maxScore = players[0].score;
+  const rankDisplay = (r) => {
+    if (r === 1) return `<span class="rank-num r1">🥇</span>`;
+    if (r === 2) return `<span class="rank-num r2">🥈</span>`;
+    if (r === 3) return `<span class="rank-num r3">🥉</span>`;
+    return `<span class="rank-num r-other">#${r}</span>`;
+  };
+  const timeAgo = (ts) => {
+    const d = Date.now() / 1000 - ts;
+    if (d < 60)    return "just now";
+    if (d < 3600)  return `${Math.floor(d/60)}m ago`;
+    if (d < 86400) return `${Math.floor(d/3600)}h ago`;
+    return `${Math.floor(d/86400)}d ago`;
+  };
+  tbody.innerHTML = players.map(p => {
+    const pct = maxScore > 0 ? (p.score / maxScore * 100).toFixed(1) : 0;
+    return `<tr class="lb-row">
+      <td class="rank-cell">${rankDisplay(p.rank)}</td>
+      <td><div class="player-cell">
+        <span class="player-flag">${p.flag}</span>
+        <div>
+          <div class="player-name">${esc(p.name)}</div>
+          <div class="player-country">${p.country || "??"}</div>
+        </div>
+      </div></td>
+      <td class="score-cell">
+        <div class="score-val">${p.score.toLocaleString()}</div>
+        <div class="score-bar-wrap"><div class="score-bar-fill" style="width:${pct}%"></div></div>
+      </td>
+      <td class="time-cell">${timeAgo(p.submitted_at)}</td>
+      <td class="del-cell">
+        <button class="del-btn" onclick="deletePlayer('${esc(p.name)}')" title="Remove player">✕</button>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+function searchPlayers() {
+  const q = document.getElementById("lb-search").value.toLowerCase();
+  const filtered = q ? allPlayers.filter(p => p.name.toLowerCase().includes(q)) : allPlayers;
+  renderTable(filtered.map((p, i) => ({ ...p, rank: i + 1 })));
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// ─── PLAYER DELETE ────────────────────────────────────────────────────────────
+function deletePlayer(name) {
+  showConfirm(
+    "Remove Player?",
+    `Remove "${name}" from the leaderboard? This cannot be undone.`,
+    async () => {
+      const res = await api("delete_player", {
+        board_id: session.board_id,
+        password: session.password,
+        name
+      });
+      if (res.success) { toast("Player removed."); await loadBoard(); }
+      else toast(res.error, "error");
+    }
+  );
+}
+
+// ─── CLEAR ALL ────────────────────────────────────────────────────────────────
+function confirmClear() {
+  showConfirm(
+    "Clear All Scores?",
+    "This will permanently delete ALL player scores from your leaderboard. This cannot be undone.",
+    async () => {
+      const res = await api("clear", { board_id: session.board_id, password: session.password });
+      if (res.success) { toast("All scores cleared."); await loadBoard(); }
+      else toast(res.error, "error");
+    }
+  );
+}
+
+// ─── DELETE BOARD ─────────────────────────────────────────────────────────────
+function confirmDelete() {
+  showConfirm(
+    "Delete Leaderboard?",
+    `Permanently delete "${session.title}" and ALL its data? This is irreversible.`,
+    async () => {
+      const res = await api("delete_board", { board_id: session.board_id, password: session.password });
+      if (res.success) { toast("Board deleted."); logout(); }
+      else toast(res.error, "error");
+    }
+  );
+}
+
+// ─── CONFIRM DIALOG ───────────────────────────────────────────────────────────
+function showConfirm(title, body, onConfirm) {
+  document.getElementById("confirm-title").textContent = title;
+  document.getElementById("confirm-body").textContent  = body;
+  const btn = document.getElementById("confirm-ok");
+  btn.onclick = () => { closeModal("confirm-modal"); onConfirm(); };
+  openModal("confirm-modal");
+}
+
+// ─── SETTINGS ─────────────────────────────────────────────────────────────────
+async function saveSettings() {
+  const title = document.getElementById("s-title").value.trim();
+  const desc  = document.getElementById("s-desc").value.trim();
+  const newpw = document.getElementById("s-newpw").value.trim();
+  const curpw = document.getElementById("s-curpw").value.trim();
+  if (!curpw) { setMsg("settings-msg", "Current password is required.", "error"); return; }
+
+  const res = await api("update_settings", {
+    board_id: session.board_id,
+    password: curpw,
+    title, description: desc, new_password: newpw
+  });
+  if (!res.success) { setMsg("settings-msg", res.error, "error"); return; }
+
+  if (newpw) session.password = newpw;
+  session.title = title || session.title;
+  session.desc  = desc;
+  document.getElementById("dash-title").textContent = session.title;
+  document.getElementById("dash-desc").textContent  = session.desc;
+  setMsg("settings-msg", "Settings saved!", "success");
+  toast("Settings updated!");
+}
+
+// ─── EMBED CODES ─────────────────────────────────────────────────────────────
+function buildEmbedCodes() {
+  const bid       = session.board_id;
+  const widgetUrl = `${window.location.origin}/widget?board=${bid}`;
+  document.getElementById("preview-url").textContent = widgetUrl;
+
+  // iFrame
+  document.getElementById("iframe-code").textContent =
+`<iframe
+  src="${widgetUrl}"
+  width="100%"
+  height="500"
+  frameborder="0"
+  style="border-radius:12px"
+  allow="clipboard-write">
+</iframe>`;
+
+  // JavaScript
+  document.getElementById("js-code").textContent =
+`// Submit a score (no password needed!)
+const res = await fetch("${API}?action=submit", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    board_id: "${bid}",
+    name:     "PlayerName",
+    score:    4200,
+    country:  "IN"   // 2-letter ISO code
+  })
+});
+const data = await res.json();
+console.log(data.rank, data.message);`;
+
+  // Python
+  document.getElementById("py-code").textContent =
+`import requests
+
+res = requests.post("${API}", params={"action": "submit"}, json={
+    "board_id": "${bid}",
+    "name":    "PlayerName",
+    "score":   4200,
+    "country": "IN"
+})
+data = res.json()
+print(data["rank"], data["message"])`;
+
+  // REST
+  document.getElementById("rest-code").textContent =
+`# Submit score (public)
+POST ${API}?action=submit
+Body: { board_id, name, score, country }
+
+# Get leaderboard (public)
+GET  ${API}?action=get&board_id=${bid}&limit=50
+
+# Filter by country
+GET  ${API}?action=get&board_id=${bid}&country=IN
+
+# Search player
+GET  ${API}?action=get&board_id=${bid}&search=name`;
+
+  // Load preview iframe
+  document.getElementById("preview-iframe").src = widgetUrl;
+}
+
+function copyCode(id) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => toast("Copied to clipboard!"));
+}
+
+function copyEmbedQuick() {
+  const bid = session.board_id;
+  const url = `${window.location.origin}/widget?board=${bid}`;
+  const code = `<iframe src="${url}" width="100%" height="500" frameborder="0" style="border-radius:12px"></iframe>`;
+  navigator.clipboard.writeText(code).then(() => toast("Embed code copied!"));
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll(".tab").forEach((t, i) => {
+    const names = ["scores","embed","settings"];
+    t.classList.toggle("active", names[i] === name);
+  });
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  document.getElementById(`tab-${name}`).classList.add("active");
+}
+
+// Close modal on overlay click
+document.querySelectorAll(".modal-overlay").forEach(el => {
+  el.addEventListener("click", e => { if (e.target === el) el.classList.remove("open"); });
+});
+
+// Check URL for ?board= param (direct link)
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get("board")) {
+  document.getElementById("l-id").value = urlParams.get("board");
+  openModal("login-modal");
+}
+</script>
+</body>
+</html>

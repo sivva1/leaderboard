@@ -1,0 +1,2 @@
+# No external packages needed - only stdlib
+# Vercel Python runtime handles BaseHTTPRequestHandler

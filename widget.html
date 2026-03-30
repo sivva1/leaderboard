@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leaderboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bricolage+Grotesque:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #0b0e14;
+  --surf:    #111520;
+  --surf2:   #181c28;
+  --border:  #232840;
+  --accent:  #7c6ef5;
+  --teal:    #4fd1c5;
+  --gold:    #f6ad55;
+  --danger:  #fc5c7d;
+  --success: #68d391;
+  --text:    #e8eaf2;
+  --muted:   #6b7390;
+  --muted2:  #9197b3;
+  --mono:    'DM Mono', monospace;
+  --sans:    'Bricolage Grotesque', sans-serif;
+}
+
+html, body {
+  height: 100%; font-family: var(--sans);
+  background: var(--bg); color: var(--text);
+  overflow-x: hidden;
+}
+
+.widget {
+  display: flex; flex-direction: column;
+  height: 100%; min-height: 100vh;
+}
+
+/* HEADER */
+.w-header {
+  padding: 18px 20px 14px;
+  background: linear-gradient(135deg, rgba(124,110,245,0.12), rgba(79,209,197,0.08));
+  border-bottom: 1px solid var(--border);
+  position: relative; overflow: hidden;
+}
+.w-header::before {
+  content: '';
+  position: absolute; top: -40px; right: -40px;
+  width: 120px; height: 120px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(124,110,245,0.25), transparent 70%);
+}
+.w-board-id {
+  font-family: var(--mono); font-size: 11px; color: var(--accent);
+  letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px;
+  display: flex; align-items: center; gap: 6px;
+}
+.live-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(104,211,145,0.12); border: 1px solid rgba(104,211,145,0.3);
+  color: var(--success); padding: 1px 7px; border-radius: 20px;
+  font-size: 10px;
+}
+.live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--success); animation: blink 1.4s infinite; }
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:0.3} }
+
+.w-title { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+.w-desc  { font-size: 13px; color: var(--muted2); margin-top: 2px; }
+
+/* CONTROLS */
+.w-controls {
+  display: flex; gap: 8px; align-items: center;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  background: var(--surf);
+}
+.w-search {
+  flex: 1; padding: 8px 12px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text);
+  font-family: var(--sans); font-size: 13px; outline: none;
+  transition: border-color 0.2s;
+}
+.w-search:focus { border-color: var(--accent); }
+.w-search::placeholder { color: var(--muted); }
+
+.w-filter {
+  padding: 8px 10px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text);
+  font-family: var(--mono); font-size: 12px; outline: none; cursor: pointer;
+}
+.w-refresh {
+  padding: 8px 12px; background: var(--surf2); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--muted); font-family: var(--mono); font-size: 12px;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.w-refresh:hover { color: var(--teal); border-color: var(--teal); }
+
+/* SUBMIT BAR */
+.submit-bar {
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  background: var(--surf2);
+}
+.submit-toggle {
+  font-family: var(--mono); font-size: 12px; color: var(--muted2);
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  background: none; border: none; padding: 0;
+}
+.submit-toggle:hover { color: var(--accent); }
+.submit-form {
+  display: none; margin-top: 12px;
+  display: grid; grid-template-columns: 1fr 100px 70px auto;
+  gap: 8px; align-items: center;
+}
+.submit-form.hidden { display: none; }
+.s-input {
+  padding: 8px 10px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text);
+  font-family: var(--sans); font-size: 13px; outline: none;
+  transition: border-color 0.2s; width: 100%;
+}
+.s-input:focus { border-color: var(--accent); }
+.s-input::placeholder { color: var(--muted); }
+.s-btn {
+  padding: 8px 16px; background: var(--accent); color: #fff;
+  border: none; border-radius: 8px; font-family: var(--sans);
+  font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap;
+  transition: all 0.2s;
+}
+.s-btn:hover { background: #6a5ee0; }
+.s-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.s-msg {
+  font-family: var(--mono); font-size: 12px;
+  padding: 7px 10px; border-radius: 6px;
+  margin-top: 8px; display: none; grid-column: 1/-1;
+}
+.s-msg.success { background: rgba(104,211,145,0.1); border: 1px solid rgba(104,211,145,0.3); color: var(--success); display: block; }
+.s-msg.error   { background: rgba(252,92,125,0.1);  border: 1px solid rgba(252,92,125,0.3);  color: var(--danger);  display: block; }
+
+/* TABLE */
+.w-table-wrap { flex: 1; overflow-y: auto; }
+
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  font-family: var(--mono); font-size: 10px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.8px;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  text-align: left; background: var(--surf); position: sticky; top: 0; z-index: 1;
+}
+.lb-row { transition: background 0.15s; }
+.lb-row:hover { background: rgba(124,110,245,0.05); }
+.lb-row.me { background: rgba(124,110,245,0.08); }
+.lb-row td { padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: middle; }
+.lb-row:last-child td { border-bottom: none; }
+
+.rank-cell { text-align: center; width: 48px; }
+.r1  { font-size: 18px; }
+.r2  { font-size: 16px; }
+.r3  { font-size: 14px; }
+.r-n { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+.p-wrap { display: flex; align-items: center; gap: 8px; }
+.p-flag { font-size: 20px; }
+.p-name { font-weight: 700; font-size: 14px; }
+.p-country { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
+.score-v { font-family: var(--mono); font-size: 15px; font-weight: 500; color: var(--teal); }
+.score-b { margin-top: 3px; height: 2px; background: var(--border); border-radius: 1px; }
+.score-f { height: 100%; border-radius: 1px; background: linear-gradient(90deg, var(--accent), var(--teal)); transition: width 0.5s; }
+
+.time-v { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+/* FOOTER */
+.w-footer {
+  padding: 10px 16px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surf); font-family: var(--mono); font-size: 11px; color: var(--muted);
+}
+.w-footer a { color: var(--accent); text-decoration: none; }
+.w-footer a:hover { text-decoration: underline; }
+
+/* EMPTY / LOADING */
+.center-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 60px 24px; color: var(--muted); font-family: var(--mono); font-size: 13px;
+  text-align: center; gap: 12px;
+}
+.center-state .icon { font-size: 48px; }
+
+/* SPINNER */
+.spinner {
+  width: 32px; height: 32px; border: 3px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* RESPONSIVE */
+@media (max-width: 500px) {
+  .submit-form { grid-template-columns: 1fr 80px auto; }
+  .s-country   { display: none; }
+  thead th:nth-child(4), td:nth-child(4) { display: none; }
+  .score-b { display: none; }
+}
+@media (max-width: 380px) {
+  .w-filter { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="widget">
+
+  <!-- HEADER -->
+  <div class="w-header">
+    <div class="w-board-id">
+      🏆 <span id="w-bid">loading...</span>
+      <span class="live-badge"><span class="live-dot"></span>LIVE</span>
+    </div>
+    <div class="w-title" id="w-title">Leaderboard</div>
+    <div class="w-desc"  id="w-desc"></div>
+  </div>
+
+  <!-- SUBMIT BAR -->
+  <div class="submit-bar">
+    <button class="submit-toggle" onclick="toggleSubmit()">
+      <span id="submit-arrow">▶</span> Submit your score
+    </button>
+    <div class="submit-form hidden" id="submit-form">
+      <input class="s-input" id="s-name"    type="text"   placeholder="Your name" maxlength="50">
+      <input class="s-input" id="s-score"   type="number" placeholder="Score" min="0">
+      <input class="s-input s-country" id="s-country" type="text" placeholder="IN" maxlength="2" style="text-transform:uppercase">
+      <button class="s-btn" id="s-btn" onclick="submitScore()">Submit</button>
+      <div class="s-msg" id="s-msg"></div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="w-controls">
+    <input class="w-search" id="w-search" placeholder="🔍 Search player..." oninput="search()">
+    <select class="w-filter" id="w-country-filter" onchange="search()">
+      <option value="">🌍 All</option>
+    </select>
+    <button class="w-refresh" onclick="load()">↻ Refresh</button>
+  </div>
+
+  <!-- TABLE -->
+  <div class="w-table-wrap" id="w-table-wrap">
+    <div class="center-state"><div class="spinner"></div></div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="w-footer">
+    <span id="w-total">Loading...</span>
+    <a href="/" target="_blank">Powered by GlobalBoard</a>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin + "/api/leaderboard";
+const bid  = new URLSearchParams(window.location.search).get("board") || "";
+let allPlayers = [];
+let submitOpen = false;
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+if (!bid) {
+  document.getElementById("w-table-wrap").innerHTML =
+    `<div class="center-state"><span class="icon">❌</span>No board ID specified.</div>`;
+} else {
+  document.getElementById("w-bid").textContent = bid;
+  load();
+  setInterval(load, 30000); // auto-refresh every 30s
+}
+
+// ── Load ──────────────────────────────────────────────────────────────────────
+async function load() {
+  try {
+    const q = new URLSearchParams({ action: "get", board_id: bid, limit: 500 });
+    const res = await fetch(`${API}?${q}`);
+    const data = await res.json();
+    if (!data.success) {
+      document.getElementById("w-table-wrap").innerHTML =
+        `<div class="center-state"><span class="icon">🚫</span>${data.error}</div>`;
+      return;
+    }
+    document.getElementById("w-title").textContent = data.title;
+    document.getElementById("w-desc").textContent  = data.description || "";
+    allPlayers = data.players;
+    buildCountryFilter(allPlayers);
+    renderTable(allPlayers);
+    document.getElementById("w-total").textContent = `${data.total} player${data.total !== 1 ? "s" : ""}`;
+  } catch(e) {
+    document.getElementById("w-table-wrap").innerHTML =
+      `<div class="center-state"><span class="icon">⚠️</span>Connection error. Retrying...</div>`;
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderTable(players) {
+  const wrap = document.getElementById("w-table-wrap");
+  if (!players.length) {
+    wrap.innerHTML = `<div class="center-state"><span class="icon">🏆</span>No scores yet. Be the first!</div>`;
+    return;
+  }
+  const max = players[0].score;
+  const myName = (document.getElementById("s-name")?.value || "").trim().toLowerCase();
+  const timeAgo = ts => {
+    const d = Date.now()/1000 - ts;
+    if (d < 60)    return "just now";
+    if (d < 3600)  return `${Math.floor(d/60)}m`;
+    if (d < 86400) return `${Math.floor(d/3600)}h`;
+    return `${Math.floor(d/86400)}d`;
+  };
+  const rankIcon = r => {
+    if (r===1) return `<span class="r1">🥇</span>`;
+    if (r===2) return `<span class="r2">🥈</span>`;
+    if (r===3) return `<span class="r3">🥉</span>`;
+    return `<span class="r-n">#${r}</span>`;
+  };
+  const isMe = p => myName && p.name.toLowerCase() === myName;
+  const pct  = s => max > 0 ? (s/max*100).toFixed(1) : 0;
+
+  wrap.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th style="text-align:center">Rank</th>
+          <th>Player</th>
+          <th>Score</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${players.map(p => `
+        <tr class="lb-row${isMe(p) ? " me" : ""}">
+          <td class="rank-cell">${rankIcon(p.rank)}</td>
+          <td><div class="p-wrap">
+            <span class="p-flag">${p.flag}</span>
+            <div>
+              <div class="p-name">${esc(p.name)}${isMe(p) ? ' <span style="font-size:11px;color:var(--accent);font-family:var(--mono)">(you)</span>' : ""}</div>
+              <div class="p-country">${p.country || "??"}</div>
+            </div>
+          </div></td>
+          <td>
+            <div class="score-v">${p.score.toLocaleString()}</div>
+            <div class="score-b"><div class="score-f" style="width:${pct(p.score)}%"></div></div>
+          </td>
+          <td class="time-v">${timeAgo(p.submitted_at)}</td>
+        </tr>`).join("")}
+      </tbody>
+    </table>`;
+}
+
+// ── Search / Filter ───────────────────────────────────────────────────────────
+function search() {
+  const q   = document.getElementById("w-search").value.toLowerCase();
+  const ctr = document.getElementById("w-country-filter").value.toUpperCase();
+  let pl = allPlayers;
+  if (q)   pl = pl.filter(p => p.name.toLowerCase().includes(q));
+  if (ctr) pl = pl.filter(p => p.country === ctr);
+  renderTable(pl.map((p, i) => ({ ...p, rank: i + 1 })));
+}
+
+function buildCountryFilter(players) {
+  const sel = document.getElementById("w-country-filter");
+  const cur = sel.value;
+  const countries = [...new Set(players.map(p => p.country).filter(Boolean))].sort();
+  sel.innerHTML = `<option value="">🌍 All</option>` +
+    countries.map(c => `<option value="${c}">${flag(c)} ${c}</option>`).join("");
+  if (cur) sel.value = cur;
+}
+
+function flag(code) {
+  if (!code || code === "??") return "🏳️";
+  try { return [...code.toUpperCase()].map(c => String.fromCodePoint(c.charCodeAt(0)+127397)).join(""); }
+  catch { return "🏳️"; }
+}
+
+// ── Submit ────────────────────────────────────────────────────────────────────
+function toggleSubmit() {
+  submitOpen = !submitOpen;
+  document.getElementById("submit-form").classList.toggle("hidden", !submitOpen);
+  document.getElementById("submit-arrow").textContent = submitOpen ? "▼" : "▶";
+}
+
+async function submitScore() {
+  const name    = document.getElementById("s-name").value.trim();
+  const score   = parseFloat(document.getElementById("s-score").value);
+  const country = document.getElementById("s-country").value.trim().toUpperCase() || "??";
+  const msgEl   = document.getElementById("s-msg");
+  const btn     = document.getElementById("s-btn");
+
+  if (!name || isNaN(score)) {
+    msgEl.textContent = "Name and score are required.";
+    msgEl.className = "s-msg error";
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = "...";
+  try {
+    const res = await fetch(`${API}?action=submit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ board_id: bid, name, score, country })
+    });
+    const data = await res.json();
+    if (data.success) {
+      msgEl.textContent = `${data.message} Your rank: #${data.rank}`;
+      msgEl.className = "s-msg success";
+      await load();
+    } else {
+      msgEl.textContent = data.error;
+      msgEl.className = "s-msg error";
+    }
+  } catch(e) {
+    msgEl.textContent = "Network error.";
+    msgEl.className = "s-msg error";
+  }
+  btn.disabled = false; btn.textContent = "Submit";
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+</script>
+</body>
+</html>
