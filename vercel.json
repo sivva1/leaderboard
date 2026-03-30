@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "api/leaderboard.py", "use": "@vercel/python" },
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "widget.html", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/leaderboard", "dest": "/api/leaderboard.py" },
+    { "src": "/widget", "dest": "/widget.html" },
+    { "src": "/", "dest": "/index.html" }
+  ]
+}
